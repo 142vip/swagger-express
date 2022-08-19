@@ -1,0 +1,35 @@
+{
+  "name": "swagger-express",
+  "version": "0.0.1",
+  "description": "express下swagger使用插件",
+  "main": "index.js",
+  "scripts": {
+    "test": ""
+  },
+  "keywords": [
+    "公众号：Rong姐姐好可爱",
+    "142vip",
+    "egg",
+    "egg-plugin",
+    "egg-sequelize",
+    "@142vip/egg-sequelize",
+    "egg-mysql"
+  ],
+  "files": [
+    "config",
+    "app",
+    "libs",
+    "app.js",
+    "agent.js"
+  ],
+  "homepage": "https://github.com/142vip/swagger-express#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/142vip/swagger-express.git"
+  },
+  "author": {
+    "name": "Rong姐姐好可爱",
+    "email": "fairy_vip@2925.com"
+  },
+  "license": "MIT"
+}
