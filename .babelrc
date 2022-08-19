@@ -1,0 +1,16 @@
+{
+  "presets": [
+    "es2015",
+    "stage-2"
+  ],
+  "plugins": [],
+  "ignore": [
+    "node_modules",
+    "assets",
+    "view",
+    "public",
+    "test",
+    "spec",
+    "logs"
+  ]
+}

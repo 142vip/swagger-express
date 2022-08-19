@@ -4,7 +4,8 @@
   "description": "express下swagger使用插件",
   "main": "index.js",
   "scripts": {
-    "test": ""
+    "test": "",
+    "build": "rm -rf src && babel src -d src"
   },
   "keywords": [
     "公众号：Rong姐姐好可爱",
@@ -18,7 +19,7 @@
   "files": [
     "config",
     "app",
-    "libs",
+    "src",
     "app.js",
     "agent.js"
   ],
@@ -31,5 +32,25 @@
     "name": "Rong姐姐好可爱",
     "email": "fairy_vip@2925.com"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "doctrine": "^3.0.0",
+    "doctrine-file": "^2.0.1",
+    "express-swaggerize-ui": "^1.1.0",
+    "fs": "^0.0.1-security",
+    "glob": "^8.0.3",
+    "recursive-iterator": "^3.3.0",
+    "swagger-parser": "^10.0.3",
+    "swagger-ui-express": "^4.5.0"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-stage-2": "^6.24.1",
+    "eslint": "^8.22.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.26.0",
+    "nodemon": "^2.0.19",
+    "prettier": "^2.7.1"
+  }
 }
