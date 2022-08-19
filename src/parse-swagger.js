@@ -201,26 +201,46 @@ function parseItems(obj) {
   return undefined;
 }
 
+/**
+ * 解析return字段
+ * @param tags
+ */
 function parseReturn(tags) {
   const rets = {};
   const headers = parseHeaders(tags);
 
-  for (const i in tags) {
-    if (tags[i].title === 'returns' || tags[i].title === 'return') {
-      const description = tags[i].description.split('-'),
-        key = description[0].trim();
+  Object.values(tags).forEach((tag) => {
+    if (tag.title === 'returns' || tag.title === 'return') {
+      const description = tag.description.split('-');
+      const key = description[0].trim();
 
       rets[key] = {
         description: description[1] ? description[1].trim() : '',
         headers: headers[key]
       };
-      const type = this.parseType(tags[i].type);
+      const type = this.parseType(tag.type);
       if (type) {
         // rets[key].type = type;
-        rets[key].schema = this.parseSchema(tags[i].type);
+        rets[key].schema = parseSchema(tag.type);
       }
     }
-  }
+  });
+  // for (const i in tags) {
+  //   if (tags[i].title === 'returns' || tags[i].title === 'return') {
+  //     const description = tags[i].description.split('-'),
+  //       key = description[0].trim();
+  //
+  //     rets[key] = {
+  //       description: description[1] ? description[1].trim() : '',
+  //       headers: headers[key]
+  //     };
+  //     const type = this.parseType(tags[i].type);
+  //     if (type) {
+  //       // rets[key].type = type;
+  //       rets[key].schema = parseSchema(tags[i].type);
+  //     }
+  //   }
+  // }
   return rets;
 }
 
@@ -259,10 +279,10 @@ function parseTypedef(tags) {
   if (tags[0].type && tags[0].type.name) {
     details.allOf = [{ $ref: `#/definitions/${tags[0].type.name}` }];
   }
-  for (let i = 1; i < tags.length; i++) {
+  for (let i = 1; i < tags.length; i += 1) {
     if (tags[i].title === 'property') {
-      let propName = tags[i].name;
-      const propNameArr = propName.split('.');
+      let currentPropName = tags[i].name;
+      const propNameArr = currentPropName.split('.');
 
       const props = propNameArr.slice(1, propNameArr.length);
       const required = props.indexOf('required') > -1;
@@ -270,13 +290,13 @@ function parseTypedef(tags) {
 
       if (required === true) {
         if (details.required === null) details.required = [];
-        propName = propName.split('.')[0];
-        details.required.push(propName);
+        currentPropName = currentPropName.split('.')[0];
+        details.required.push(currentPropName);
       }
       const schema = parseSchema(tags[i].type);
 
       if (schema) {
-        details.properties[propName] = schema;
+        details.properties[currentPropName] = schema;
       }
       else {
         const type = this.parseType(tags[i].type);
@@ -294,7 +314,7 @@ function parseTypedef(tags) {
         if (readOnly) {
           prop.readOnly = true;
         }
-        details.properties[propName] = prop;
+        details.properties[currentPropName] = prop;
 
         if (prop.type === 'enum') {
           const parsedEnum = parseEnums(`-eg:${example}`);
@@ -305,15 +325,15 @@ function parseTypedef(tags) {
         if (example) {
           switch (type) {
             case 'boolean':
-              details.properties[propName].example = example === 'true';
+              details.properties[currentPropName].example = example === 'true';
               break;
             case 'integer':
-              details.properties[propName].example = +example;
+              details.properties[currentPropName].example = +example;
               break;
             case 'enum':
               break;
             default:
-              details.properties[propName].example = example;
+              details.properties[currentPropName].example = example;
               break;
           }
         }
@@ -345,11 +365,12 @@ function fileFormat(comments) {
         definitions[typedefParsed.typeName] = typedefParsed.details;
         continue;
       }
-      for (const j in comments[i]) {
-        const { title } = comments[i][j];
+
+      Object.values(comments[i]).forEach((comment) => {
+        const { title } = comment;
         if (title === 'route') {
-          route = parseRoute(comments[i][j].description);
-          const tag = parseTag(comments[i]);
+          route = parseRoute(comment.description);
+          const tag = parseTag(comment);
           parameters[route.uri] = parameters[route.uri] || {};
           parameters[route.uri][route.method] = parameters[route.uri][route.method] || {};
           parameters[route.uri][route.method].parameters = [];
@@ -361,19 +382,19 @@ function fileFormat(comments) {
           });
         }
         if (title === 'param') {
-          const field = parseField(comments[i][j].name),
+          const field = parseField(comment.name),
             properties = {
               name: field.name,
               in: field.parameter_type,
-              description: comments[i][j].description,
+              description: comment.description,
               required: field.required
             },
-            schema = parseSchema(comments[i][j].type);
+            schema = parseSchema(comment.type);
           // we only want a type if there is no referenced schema
           if (!schema) {
-            properties.type = this.parseType(comments[i][j].type);
+            properties.type = this.parseType(comment.type);
             if (properties.type === 'enum') {
-              const parsedEnum = parseEnums(comments[i][j].description);
+              const parsedEnum = parseEnums(comment.description);
               properties.type = parsedEnum.type;
               properties.enum = parsedEnum.enums;
             }
@@ -383,28 +404,28 @@ function fileFormat(comments) {
         }
 
         if (title === 'operationId' && route) {
-          parameters[route.uri][route.method].operationId = comments[i][j].description;
+          parameters[route.uri][route.method].operationId = comment.description;
         }
 
         if (title === 'summary' && route) {
-          parameters[route.uri][route.method].summary = comments[i][j].description;
+          parameters[route.uri][route.method].summary = comment.description;
         }
 
         if (title === 'produces' && route) {
           parameters[route.uri][route.method].produces = parseProduces(
-            comments[i][j].description
+            comment.description
           );
         }
 
         if (title === 'consumes' && route) {
           parameters[route.uri][route.method].consumes = parseConsumes(
-            comments[i][j].description
+            comment.description
           );
         }
 
         if (title === 'security' && route) {
           parameters[route.uri][route.method].security = parseSecurity(
-            comments[i][j].description
+            comment.description
           );
         }
 
@@ -418,16 +439,83 @@ function fileFormat(comments) {
             comments[i]
           );
         }
-      }
+      });
+      // for (const j in comments[i]) {
+      //   const { title } = comments[i][j];
+      //   if (title === 'route') {
+      //     route = parseRoute(comments[i][j].description);
+      //     const tag = parseTag(comments[i]);
+      //     parameters[route.uri] = parameters[route.uri] || {};
+      //     parameters[route.uri][route.method] = parameters[route.uri][route.method] || {};
+      //     parameters[route.uri][route.method].parameters = [];
+      //     parameters[route.uri][route.method].description = desc;
+      //     parameters[route.uri][route.method].tags = [tag[0].trim()];
+      //     tags.push({
+      //       name: typeof tag[0] === 'string' ? tag[0].trim() : '',
+      //       description: typeof tag[1] === 'string' ? tag[1].trim() : ''
+      //     });
+      //   }
+      //   if (title === 'param') {
+      //     const field = parseField(comments[i][j].name),
+      //       properties = {
+      //         name: field.name,
+      //         in: field.parameter_type,
+      //         description: comments[i][j].description,
+      //         required: field.required
+      //       },
+      //       schema = parseSchema(comments[i][j].type);
+      //     // we only want a type if there is no referenced schema
+      //     if (!schema) {
+      //       properties.type = this.parseType(comments[i][j].type);
+      //       if (properties.type === 'enum') {
+      //         const parsedEnum = parseEnums(comments[i][j].description);
+      //         properties.type = parsedEnum.type;
+      //         properties.enum = parsedEnum.enums;
+      //       }
+      //     }
+      //     else properties.schema = schema;
+      //     params.push(properties);
+      //   }
+      //
+      //   if (title === 'operationId' && route) {
+      //     parameters[route.uri][route.method].operationId = comments[i][j].description;
+      //   }
+      //
+      //   if (title === 'summary' && route) {
+      //     parameters[route.uri][route.method].summary = comments[i][j].description;
+      //   }
+      //
+      //   if (title === 'produces' && route) {
+      //     parameters[route.uri][route.method].produces = parseProduces(
+      //       comments[i][j].description
+      //     );
+      //   }
+      //
+      //   if (title === 'consumes' && route) {
+      //     parameters[route.uri][route.method].consumes = parseConsumes(
+      //       comments[i][j].description
+      //     );
+      //   }
+      //
+      //   if (title === 'security' && route) {
+      //     parameters[route.uri][route.method].security = parseSecurity(
+      //       comments[i][j].description
+      //     );
+      //   }
+      //
+      //   if (title === 'deprecated' && route) {
+      //     parameters[route.uri][route.method].deprecated = true;
+      //   }
+      //
+      //   if (route) {
+      //     parameters[route.uri][route.method].parameters = params;
+      //     parameters[route.uri][route.method].responses = parseReturn(
+      //       comments[i]
+      //     );
+      //   }
+      // }
     }
   }
-  console.log(
-    JSON.stringify({
-      parameters,
-      tags,
-      definitions
-    })
-  );
   return { parameters, tags, definitions };
 }
 
@@ -445,21 +533,21 @@ function convertGlobPaths(base, globs) {
   }, []);
 }
 
+function parseApiFile(file) {
+  const content = fs.readFileSync(file, 'utf-8');
+
+  const comments = doctrineFile.parseFileContent(content, {
+    unwrap: true,
+    sloppy: true,
+    tags: null,
+    recoverable: true
+  });
+  return comments;
+}
+
 export default class parseSwagger {
   constructor(app) {
     this.app = app;
-  }
-
-  parseApiFile(file) {
-    const content = fs.readFileSync(file, 'utf-8');
-
-    const comments = doctrineFile.parseFileContent(content, {
-      unwrap: true,
-      sloppy: true,
-      tags: null,
-      recoverable: true
-    });
-    return comments;
   }
 
   generateSwaggerSpec(options) {
@@ -472,6 +560,9 @@ export default class parseSwagger {
     else if (options.files == null) {
       throw new Error("'files' is required.");
     }
+    else if (options.basedir == null) {
+      throw new Error("'files' is required.");
+    }
 
     // Build basic swagger json
     let swaggerObject = parseSwaggerUtil.initDefaultSwaggerInstance(
@@ -481,7 +572,7 @@ export default class parseSwagger {
 
     // Parse the documentation in the APIs array.
     for (let i = 0; i < apiFiles.length; i += 1) {
-      const parsedFile = this.parseApiFile(apiFiles[i]);
+      const parsedFile = parseApiFile(apiFiles[i]);
       const comments = filterJsDocComments(parsedFile);
 
       for (const j in comments) {
